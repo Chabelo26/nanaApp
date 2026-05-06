@@ -1,99 +1,102 @@
+// src/screens/MapScreen.js
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, TouchableOpacity, Text, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
-import { Ionicons } from '@expo/vector-icons'; // Iconos de Expo
+import { COLORS } from '../styles/colors';
+import { Ionicons } from '@expo/vector-icons'; // Para el icono de +
 
-export default function MapScreen({ navigation }) {
-  const [location, setLocation] = useState(null);
-  const [reports, setReports] = useState([]); // Aquí guardarás los datos de Firestore
-  const [loading, setLoading] = useState(true);
+// Mock de datos: Estos datos vendrían de Firestore
+const mockReports = [
+  { id: '1', latitude: 19.4326, longitude: -99.1332, state: 'No Seguro' }, // CDMX
+  { id: '2', latitude: 20.6597, longitude: -103.3496, state: 'En Proceso' }, // Guadalajara
+  { id: '3', latitude: 25.6866, longitude: -100.3161, state: 'Seguro' }, // Monterrey
+];
 
-  // 1. Obtener ubicación actual al cargar
+const MapScreen = ({ navigation }) => {
+  const [region, setRegion] = useState(null);
+
   useEffect(() => {
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        alert('Se requiere permiso de ubicación para ver el mapa');
+        alert('Se necesitan permisos de ubicación para mostrar el mapa.');
         return;
       }
-
-      let currentLocation = await Location.getCurrentPositionAsync({});
-      setLocation({
-        latitude: currentLocation.coords.latitude,
-        longitude: currentLocation.coords.longitude,
-        latitudeDelta: 0.05, // Zoom
-        longitudeDelta: 0.05,
+      let location = await Location.getCurrentPositionAsync({});
+      setRegion({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        latitudeDelta: 0.0922,
+        longitudeDelta: 0.0421,
       });
-      setLoading(false);
     })();
-
-    // AQUÍ DEBERÍAS LLAMAR A TU FUNCIÓN DE FIRESTORE:
-    // fetchReportsFromFirestore().then(data => setReports(data));
-    // Ejemplo de dato dummy:
-    setReports([
-      { id: '1', lat: 20.5888, lng: -100.3899, status: 'No Seguro', title: 'Rancho Izaguirre' }
-    ]);
   }, []);
 
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#D32F2F" />
-        <Text>Cargando Mapa...</Text>
-      </View>
-    );
-  }
+  const getMarkerColor = (state) => {
+    switch (state) {
+      case 'No Seguro': return 'red';
+      case 'En Proceso': return 'orange';
+      case 'Seguro': return 'green';
+      default: return 'gray';
+    }
+  };
+
+  const handleMapPress = (e) => {
+    // Al presionar en el mapa, podemos opcionalmente tomar esa ubicación
+    // console.log('Coordenadas presionadas:', e.nativeEvent.coordinate);
+  };
 
   return (
     <View style={styles.container}>
-      <MapView
-        provider={PROVIDER_GOOGLE} // Recomendado para mejor estilo
-        style={styles.map}
-        initialRegion={location}
-        showsUserLocation={true}
-      >
-        {/* Renderizar los pines de la base de datos */}
-        {reports.map((report) => (
-          <Marker
-            key={report.id}
-            coordinate={{ latitude: report.lat, longitude: report.lng }}
-            title={report.title}
-            description={report.status}
-            pinColor={report.status === 'No Seguro' ? '#D32F2F' : '#4CAF50'}
-            onCalloutPress={() => navigation.navigate('Detail', { reportId: report.id })}
-          />
-        ))}
-      </MapView>
+      {region ? (
+        <MapView
+          provider={PROVIDER_GOOGLE}
+          style={styles.map}
+          region={region}
+          onLongPress={handleMapPress} // Ejemplo de long press
+        >
+          {mockReports.map(report => (
+            <Marker
+              key={report.id}
+              coordinate={{ latitude: report.latitude, longitude: report.longitude }}
+              title={report.state}
+              pinColor={getMarkerColor(report.state)}
+            />
+          ))}
+        </MapView>
+      ) : (
+        <View style={styles.loadingContainer}><Text>Cargando mapa...</Text></View>
+      )}
 
-      {/* Botón Flotante para Reportar (El "+" del Figma) */}
+      {/* Botón Flotante "+" */}
       <TouchableOpacity 
-        style={styles.fab}
-        onPress={() => navigation.navigate('Report', { coords: location })}
+        style={styles.fab} 
+        onPress={() => navigation.navigate('Report', { initialLocation: null })}
       >
-        <Ionicons name="add" size={35} color="white" />
-      </TouchableOpacity>
-
-      {/* Botón de regreso (Opcional, si no usas Header) */}
-      <TouchableOpacity 
-        style={styles.backButton}
-        onPress={() => navigation.goBack()}
-      >
-        <Ionicons name="home" size={24} color="#455A64" />
+        <Ionicons name="add" size={30} color="#FFFFFF" />
       </TouchableOpacity>
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  container: { ...StyleSheet.absoluteFillObject },
-  map: { ...StyleSheet.absoluteFillObject },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  container: {
+    flex: 1,
+  },
+  map: {
+    flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   fab: {
     position: 'absolute',
+    bottom: 20,
     right: 20,
-    bottom: 30,
-    backgroundColor: '#D32F2F',
+    backgroundColor: COLORS.primary,
     width: 60,
     height: 60,
     borderRadius: 30,
@@ -102,15 +105,9 @@ const styles = StyleSheet.create({
     elevation: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
-  backButton: {
-    position: 'absolute',
-    left: 20,
-    bottom: 30,
-    backgroundColor: 'white',
-    padding: 15,
-    borderRadius: 30,
-    elevation: 4,
-  }
 });
+
+export default MapScreen;
