@@ -1,26 +1,25 @@
 // src/screens/MapScreen.js
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, Callout, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../styles/colors';
-import { Ionicons } from '@expo/vector-icons'; // Para el icono de +
 
-// Mock de datos: Estos datos vendrían de Firestore
-const mockReports = [
-  { id: '1', latitude: 19.4326, longitude: -99.1332, state: 'No Seguro' }, // CDMX
-  { id: '2', latitude: 20.6597, longitude: -103.3496, state: 'En Proceso' }, // Guadalajara
-  { id: '3', latitude: 25.6866, longitude: -100.3161, state: 'Seguro' }, // Monterrey
-];
+// IMPORTACIONES DE FIREBASE
+import { collection, onSnapshot } from 'firebase/firestore';
+import { db } from '../config/firebase';
 
 const MapScreen = ({ navigation }) => {
-  const [region, setRegion] = useState(null);
+  const [region, setRegion] = useState(null); // Región inicial del mapa
+  const [reports, setReports] = useState([]); // Reportes cargados desde Firestore
 
   useEffect(() => {
+    // Pedir permisos y establecer la región inicial del usuario
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        alert('Se necesitan permisos de ubicación para mostrar el mapa.');
+        alert('Se necesitan permisos de ubicación.');
         return;
       }
       let location = await Location.getCurrentPositionAsync({});
@@ -31,8 +30,20 @@ const MapScreen = ({ navigation }) => {
         longitudeDelta: 0.0421,
       });
     })();
+
+    // Escuchar cambios en la colección de reportes en Firebase
+    const unsubscribe = onSnapshot(collection(db, 'reports'), (snapshot) => {
+      const data = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setReports(data);
+    });
+
+    return () => unsubscribe(); // Limpiar listener al salir
   }, []);
 
+  // Determina el color del pin según el estado del reporte
   const getMarkerColor = (state) => {
     switch (state) {
       case 'No Seguro': return 'red';
@@ -42,34 +53,32 @@ const MapScreen = ({ navigation }) => {
     }
   };
 
-  const handleMapPress = (e) => {
-    // Al presionar en el mapa, podemos opcionalmente tomar esa ubicación
-    // console.log('Coordenadas presionadas:', e.nativeEvent.coordinate);
-  };
-
   return (
     <View style={styles.container}>
       {region ? (
-        <MapView
-          provider={PROVIDER_GOOGLE}
-          style={styles.map}
-          region={region}
-          onLongPress={handleMapPress} // Ejemplo de long press
-        >
-          {mockReports.map(report => (
+        <MapView provider={PROVIDER_GOOGLE} style={styles.map} region={region}>
+          {/* Mostrar cada reporte como marcador en el mapa */}
+          {reports.map(report => (
             <Marker
               key={report.id}
               coordinate={{ latitude: report.latitude, longitude: report.longitude }}
-              title={report.state}
-              pinColor={getMarkerColor(report.state)}
-            />
+              pinColor={getMarkerColor(report.status)}
+            >
+              {/* Callout se muestra cuando el usuario toca el pin */}
+              <Callout onPress={() => navigation.navigate('Detail', { report })}>
+                <View style={{ padding: 5, alignItems: 'center' }}>
+                  <Text style={{ fontWeight: 'bold' }}>{report.status}</Text>
+                  <Text style={{ fontSize: 12 }}>Toca para ver detalles</Text>
+                </View>
+              </Callout>
+            </Marker>
           ))}
         </MapView>
       ) : (
         <View style={styles.loadingContainer}><Text>Cargando mapa...</Text></View>
       )}
 
-      {/* Botón Flotante "+" */}
+      {/* Botón flotante para crear un nuevo reporte */}
       <TouchableOpacity 
         style={styles.fab} 
         onPress={() => navigation.navigate('Report', { initialLocation: null })}
@@ -81,17 +90,9 @@ const MapScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  map: {
-    flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  container: { flex: 1 },
+  map: { flex: 1 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   fab: {
     position: 'absolute',
     bottom: 20,

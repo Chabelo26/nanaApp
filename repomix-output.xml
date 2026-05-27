@@ -1,0 +1,915 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.gitignore
+App.js
+app.json
+assets/icon.png
+index.js
+package.json
+src/App.js
+src/components/MyButton.js
+src/config/firebase.js
+src/navigation/index.js
+src/screens/DetailScreen.js
+src/screens/HomeScreen.js
+src/screens/MapScreen.js
+src/screens/ReportScreen.js
+src/styles/colors.js
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="src/config/firebase.js">
+// src/config/firebase.js
+import { initializeApp } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDCILlZVkY45Xh8smQi-_Nf2TJIEAbMIGo",
+  authDomain: "nana-4e3a8.firebaseapp.com",
+  projectId: "nana-4e3a8",
+  storageBucket: "nana-4e3a8.firebasestorage.app",
+  messagingSenderId: "724079699254",
+  appId: "1:724079699254:web:1d9d6479af89dab46d3f97",
+  measurementId: "G-0EWY5RTT2T"
+};
+
+// Inicializar Firebase
+const app = initializeApp(firebaseConfig);
+
+// Exportar Base de Datos y Storage (SIN Analytics)
+export const db = getFirestore(app);
+export const storage = getStorage(app);
+</file>
+
+<file path="src/screens/DetailScreen.js">
+// src/screens/DetailScreen.js
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { COLORS } from '../styles/colors';
+import MyButton from '../components/MyButton';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../config/firebase';
+
+const DetailScreen = ({ route, navigation }) => {
+  const { report } = route.params; 
+  // Estado local para actualizar el color en pantalla instantáneamente
+  const [currentStatus, setCurrentStatus] = useState(report.status);
+
+  // Función para actualizar en Firebase
+  const handleUpdateStatus = async (newStatus) => {
+    setCurrentStatus(newStatus); // Actualiza la pantalla rápido
+    try {
+      const reportRef = doc(db, 'reports', report.id);
+      await updateDoc(reportRef, {
+        status: newStatus
+      });
+      Alert.alert('Actualizado', 'El estado del reporte ha cambiado.');
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error', 'No se pudo actualizar el estado.');
+      setCurrentStatus(report.status); // Si falla, regresa al estado original
+    }
+  };
+
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      {report.imageUrl ? (
+        <Image source={{ uri: report.imageUrl }} style={styles.image} />
+      ) : (
+        <View style={styles.placeholder}><Text>Sin imagen</Text></View>
+      )}
+
+      {/* AQUÍ ESTÁN LOS BOTONES PARA CAMBIAR EL ESTADO */}
+      <View style={styles.statusContainer}>
+        <Text style={styles.label}>Actualizar Estado:</Text>
+        <View style={styles.statusButtons}>
+          {['No Seguro', 'En Proceso', 'Seguro'].map(s => (
+            <TouchableOpacity 
+              key={s}
+              style={[
+                styles.statusButton, 
+                currentStatus === s && { backgroundColor: getStatusColor(s) }
+              ]}
+              onPress={() => handleUpdateStatus(s)}
+            >
+              <Text style={[styles.statusButtonText, currentStatus === s && { color: '#FFFFFF' }]}>
+                {s}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.infoCard}>
+        <Text style={styles.label}>Dirección:</Text>
+        <Text style={styles.text}>{report.address}</Text>
+      </View>
+
+      <View style={styles.infoCard}>
+        <Text style={styles.label}>Detalles de Evidencia:</Text>
+        <Text style={styles.text}>{report.description}</Text>
+      </View>
+
+      <MyButton title="Regresar" onPress={() => navigation.goBack()} style={{ marginTop: 20 }} />
+    </ScrollView>
+  );
+};
+
+const getStatusColor = (state) => {
+  switch (state) {
+    case 'No Seguro': return COLORS.error;
+    case 'En Proceso': return 'orange';
+    case 'Seguro': return 'green';
+    default: return 'gray';
+  }
+};
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: COLORS.background },
+  content: { padding: 20 },
+  image: { width: '100%', height: 250, borderRadius: 12, marginBottom: 15 },
+  placeholder: { width: '100%', height: 250, backgroundColor: COLORS.border, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 15 },
+  infoCard: { backgroundColor: COLORS.card, padding: 15, borderRadius: 8, marginBottom: 15 },
+  label: { fontSize: 14, color: COLORS.inactive, marginBottom: 5 },
+  text: { fontSize: 16, color: COLORS.text },
+  statusContainer: { backgroundColor: COLORS.card, padding: 15, borderRadius: 8, marginBottom: 15 },
+  statusButtons: { flexDirection: 'row', justifyContent: 'space-between', gap: 5 },
+  statusButton: { flex: 1, borderWidth: 1, borderColor: COLORS.border, paddingVertical: 10, borderRadius: 8, alignItems: 'center' },
+  statusButtonText: { color: COLORS.secondary, fontWeight: '500', fontSize: 12, textAlign: 'center' },
+});
+
+export default DetailScreen;
+</file>
+
+<file path=".gitignore">
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env*.local
+
+# typescript
+*.tsbuildinfo
+
+# generated native folders
+/ios
+/android
+</file>
+
+<file path="app.json">
+{
+  "expo": {
+    "name": "nanaApp",
+    "slug": "nanaApp",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
+</file>
+
+<file path="index.js">
+import { registerRootComponent } from 'expo';
+
+import App from './App';
+
+// registerRootComponent calls AppRegistry.registerComponent('main', () => App);
+// It also ensures that whether you load the app in Expo Go or in a native build,
+// the environment is set up appropriately
+registerRootComponent(App);
+</file>
+
+<file path="src/App.js">
+// src/App.js
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import AppNavigator from './navigation/index';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+export default function AppMain() {
+  return (
+    <SafeAreaProvider>
+      <NavigationContainer>
+        <AppNavigator />
+      </NavigationContainer>
+    </SafeAreaProvider>
+  );
+}
+</file>
+
+<file path="src/components/MyButton.js">
+// src/components/MyButton.js
+import React from 'react';
+import { TouchableOpacity, Text, StyleSheet, Platform } from 'react-native';
+import { COLORS } from '../styles/colors';
+
+const MyButton = ({ title, onPress, style, textStyle }) => {
+  return (
+    <TouchableOpacity style={[styles.button, style]} onPress={onPress}>
+      <Text style={[styles.text, textStyle]}>{title}</Text>
+    </TouchableOpacity>
+  );
+};
+
+const styles = StyleSheet.create({
+  button: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Platform.select({ // Sombras diferentes para iOS y Android
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  text: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+  },
+});
+
+export default MyButton;
+</file>
+
+<file path="src/navigation/index.js">
+// src/navigation/index.js
+import React from 'react';
+import { createStackNavigator } from '@react-navigation/stack';
+import { COLORS } from '../styles/colors';
+
+// Importar pantallas
+import HomeScreen from '../screens/HomeScreen';
+import MapScreen from '../screens/MapScreen';
+import ReportScreen from '../screens/ReportScreen';
+import DetailScreen from '../screens/DetailScreen';
+
+const Stack = createStackNavigator();
+
+const AppNavigator = () => {
+  return (
+    <Stack.Navigator
+      initialRouteName="Home"
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: COLORS.background,
+        },
+        headerTintColor: COLORS.primary,
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        },
+        cardStyle: { backgroundColor: COLORS.background }, // Fondo global claro
+      }}
+    >
+      <Stack.Screen 
+        name="Home" 
+        component={HomeScreen} 
+        options={{ headerShown: false }} // Ocultar header en Home
+      />
+      <Stack.Screen 
+        name="Map" 
+        component={MapScreen} 
+        options={{ title: 'Mapa de Reportes' }}
+      />
+      <Stack.Screen 
+        name="Report" 
+        component={ReportScreen} 
+        options={{ title: 'Reportar Denuncia' }}
+      />
+      <Stack.Screen 
+        name="Detail" 
+        component={DetailScreen} 
+        options={{ title: 'Detalles' }}
+      />
+    </Stack.Navigator>
+  );
+};
+
+export default AppNavigator;
+</file>
+
+<file path="src/styles/colors.js">
+// src/styles/colors.js
+export const COLORS = {
+  primary: '#800020',    // Mantener el color vino para acentos (botones, etc.)
+  secondary: '#333333',   // Texto oscuro
+  background: '#FFFFFF',  // Fondo blanco puro
+  card: '#F8F9FA',        // Fondo de tarjetas ligero
+  border: '#E0E0E0',      // Bordes grises claros
+  text: '#121212',
+  lightText: '#6C757D',
+  error: '#DC3545',
+  inactive: '#888888',
+};
+</file>
+
+<file path="App.js">
+// ./App.js (Raíz del proyecto)
+import AppMain from './src/App';
+export default AppMain;
+</file>
+
+<file path="package.json">
+{
+  "name": "nanaapp",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web"
+  },
+  "dependencies": {
+    "@react-native-picker/picker": "2.11.1",
+    "@react-navigation/native": "^7.2.2",
+    "@react-navigation/stack": "^7.8.11",
+    "expo": "^54.0.0",
+    "expo-image-picker": "~17.0.11",
+    "expo-location": "~19.0.8",
+    "expo-status-bar": "~3.0.9",
+    "firebase": "^12.13.0",
+    "react": "19.1.0",
+    "react-native": "0.81.5",
+    "react-native-gesture-handler": "~2.28.0",
+    "react-native-maps": "1.20.1",
+    "react-native-safe-area-context": "~5.6.0",
+    "react-native-screens": "~4.16.0"
+  },
+  "private": true
+}
+</file>
+
+<file path="src/screens/HomeScreen.js">
+// src/screens/HomeScreen.js
+import React from 'react';
+import { View, Text, StyleSheet, Image, ImageBackground } from 'react-native';
+import MyButton from '../components/MyButton';
+import { COLORS } from '../styles/colors';
+import * as Location from 'expo-location';
+
+const HomeScreen = ({ navigation }) => {
+  const handleDirectReport = async () => {
+    // 1. Solicitar permiso de ubicación
+    let { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      alert('Se necesitan permisos de ubicación para reportar directamente.');
+      return;
+    }
+
+    // 2. Obtener ubicación actual
+    let location = await Location.getCurrentPositionAsync({});
+    console.log('Ubicación obtenida:', location.coords);
+
+    // 3. Navegar a la pantalla de reportar, pasando la ubicación
+    navigation.navigate('Report', { initialLocation: location.coords });
+  };
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.logoContainer}>
+        {/* Usamos un placeholder de logo, reemplaza con tu asset real */}
+        <Image 
+          source={require('../../assets/icon.png')} // Reemplaza con un logo adecuado
+          style={styles.logo} 
+          resizeMode="contain" 
+        />
+        <Text style={styles.appName}>DENUNCIA CIUDADANA</Text>
+      </View>
+      
+      <View style={styles.buttonContainer}>
+        <MyButton 
+          title="Ver Mapa" 
+          onPress={() => navigation.navigate('Map')} 
+          style={styles.mainButton}
+        />
+        <MyButton 
+          title="Reportar Ahora" 
+          onPress={handleDirectReport} 
+          style={styles.directButton}
+        />
+      </View>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    padding: 20,
+    justifyContent: 'space-between',
+  },
+  logoContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  logo: {
+    width: 150,
+    height: 150,
+    tintColor: COLORS.primary, // Opcional, para usar el logo como silueta
+  },
+  appName: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+    marginTop: 20,
+  },
+  buttonContainer: {
+    paddingBottom: 30,
+    gap: 15,
+  },
+  mainButton: {
+    backgroundColor: COLORS.secondary,
+  },
+  directButton: {
+    backgroundColor: COLORS.primary,
+  },
+});
+
+export default HomeScreen;
+</file>
+
+<file path="src/screens/MapScreen.js">
+// src/screens/MapScreen.js
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import MapView, { Marker, Callout, PROVIDER_GOOGLE } from 'react-native-maps';
+import * as Location from 'expo-location';
+import { Ionicons } from '@expo/vector-icons';
+import { COLORS } from '../styles/colors';
+
+// IMPORTACIONES DE FIREBASE
+import { collection, onSnapshot } from 'firebase/firestore';
+import { db } from '../config/firebase';
+
+const MapScreen = ({ navigation }) => {
+  const [region, setRegion] = useState(null);
+  const [reports, setReports] = useState([]); 
+
+  useEffect(() => {
+    // 1. Obtener ubicación del usuario
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        alert('Se necesitan permisos de ubicación.');
+        return;
+      }
+      let location = await Location.getCurrentPositionAsync({});
+      setRegion({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        latitudeDelta: 0.0922,
+        longitudeDelta: 0.0421,
+      });
+    })();
+
+    // 2. Escuchar reportes en tiempo real desde Firestore
+    const unsubscribe = onSnapshot(collection(db, 'reports'), (snapshot) => {
+      const data = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setReports(data);
+    });
+
+    // Limpiar el listener al salir de la pantalla
+    return () => unsubscribe();
+  }, []);
+
+  const getMarkerColor = (state) => {
+    switch (state) {
+      case 'No Seguro': return 'red';
+      case 'En Proceso': return 'orange';
+      case 'Seguro': return 'green';
+      default: return 'gray';
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      {region ? (
+        <MapView provider={PROVIDER_GOOGLE} style={styles.map} region={region}>
+          {/* Mapear los reportes de Firebase a Marcadores */}
+          {reports.map(report => (
+            <Marker
+              key={report.id}
+              coordinate={{ latitude: report.latitude, longitude: report.longitude }}
+              pinColor={getMarkerColor(report.status)}
+            >
+              {/* Callout es la burbuja que aparece al tocar el pin */}
+              <Callout onPress={() => navigation.navigate('Detail', { report })}>
+                <View style={{ padding: 5, alignItems: 'center' }}>
+                  <Text style={{ fontWeight: 'bold' }}>{report.status}</Text>
+                  <Text style={{ fontSize: 12 }}>Toca para ver detalles</Text>
+                </View>
+              </Callout>
+            </Marker>
+          ))}
+        </MapView>
+      ) : (
+        <View style={styles.loadingContainer}><Text>Cargando mapa...</Text></View>
+      )}
+
+      <TouchableOpacity 
+        style={styles.fab} 
+        onPress={() => navigation.navigate('Report', { initialLocation: null })}
+      >
+        <Ionicons name="add" size={30} color="#FFFFFF" />
+      </TouchableOpacity>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: { 
+    flex: 1 
+  },
+  map: { 
+    flex: 1 
+  },
+  loadingContainer: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center' 
+  },
+  fab: { 
+    position: 'absolute', 
+    bottom: 20, 
+    right: 20, 
+    backgroundColor: COLORS.primary, 
+    width: 60, 
+    height: 60, 
+    borderRadius: 30, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    elevation: 5, 
+    shadowColor: '#000', 
+    shadowOffset: { width: 0, height: 2 }, 
+    shadowOpacity: 0.25, 
+    shadowRadius: 3.84 
+  },
+});
+
+export default MapScreen;
+</file>
+
+<file path="src/screens/ReportScreen.js">
+// src/screens/ReportScreen.js
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Image, TextInput, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
+import { Ionicons } from '@expo/vector-icons';
+import MyButton from '../components/MyButton';
+import { COLORS } from '../styles/colors';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '../config/firebase';
+
+const ReportScreen = ({ route, navigation }) => {
+  const [image, setImage] = useState(null);
+  const [address, setAddress] = useState('');
+  const [description, setDescription] = useState('');
+  const [status, setStatus] = useState('No Seguro');
+  const [location, setLocation] = useState(route.params?.initialLocation || null);
+
+  // Nuevos estados para controlar el modo y la carga
+  const [locationMode, setLocationMode] = useState('gps'); // 'gps' o 'manual'
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (locationMode === 'gps' && !location) {
+      (async () => {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          let loc = await Location.getCurrentPositionAsync({});
+          setLocation(loc.coords);
+          
+          // Opcional: Intentar autocompletar la dirección basada en el GPS
+          try {
+            let geocode = await Location.reverseGeocodeAsync(loc.coords);
+            if (geocode.length > 0) {
+              setAddress(`${geocode[0].street || ''} ${geocode[0].streetNumber || ''}, ${geocode[0].city || ''}`.trim());
+            }
+          } catch (e) { console.log("No se pudo autocompletar"); }
+        } else {
+          Alert.alert('Permiso denegado', 'No podemos usar tu GPS. Escribe la dirección manualmente.');
+          setLocationMode('manual');
+        }
+      })();
+    }
+  }, [locationMode]);
+
+  const takePhoto = async () => {
+    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+    if (permissionResult.granted === false) {
+      Alert.alert('Permiso denegado', 'Se requieren permisos de cámara para tomar fotos.');
+      return;
+    }
+    let result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.5,
+    });
+    if (!result.canceled) {
+      setImage(result.assets[0].uri);
+    }
+  };
+
+  const handleSubmitReport = async () => {
+    if (!image || !description) {
+      Alert.alert('Error', 'Por favor añade una foto y una descripción.');
+      return;
+    }
+
+    if (!address.trim()) {
+      Alert.alert('Error', 'La dirección es obligatoria.');
+      return;
+    }
+
+    setIsSubmitting(true); // Bloquea el botón mientras carga
+
+    try {
+      let finalCoords = location;
+
+      // Si el modo es manual, convertimos el texto escrito en Coordenadas GPS
+      if (locationMode === 'manual') {
+        const geocoded = await Location.geocodeAsync(address);
+        if (geocoded.length > 0) {
+          finalCoords = {
+            latitude: geocoded[0].latitude,
+            longitude: geocoded[0].longitude
+          };
+        } else {
+          Alert.alert('Error', 'No pudimos encontrar esta dirección en el mapa. Sé más específico (ej. Calle, Número, Ciudad).');
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      if (!finalCoords) {
+        Alert.alert('Error', 'Aún no tenemos coordenadas para poner el pin en el mapa.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // 1. Subir imagen
+      const response = await fetch(image);
+      const blob = await response.blob();
+      const filename = `reports/${Date.now()}.jpg`;
+      const storageRef = ref(storage, filename);
+      await uploadBytes(storageRef, blob);
+      const imageUrl = await getDownloadURL(storageRef);
+
+      // 2. Guardar en Firestore con la ubicación final (sea GPS o convertida de texto)
+      await addDoc(collection(db, 'reports'), {
+        imageUrl,
+        address,
+        description,
+        status,
+        latitude: finalCoords.latitude,
+        longitude: finalCoords.longitude,
+        createdAt: serverTimestamp()
+      });
+
+      Alert.alert('Éxito', 'Tu reporte ha sido recibido.', [
+        { text: 'OK', onPress: () => navigation.popToTop() }
+      ]);
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error', 'Hubo un problema al enviar el reporte.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <Text style={styles.title}>NUEVA DENUNCIA ANÓNIMA</Text>
+
+      <TouchableOpacity style={styles.imagePicker} onPress={takePhoto}>
+        {image ? (
+          <Image source={{ uri: image }} style={styles.image} />
+        ) : (
+          <View style={styles.placeholder}>
+            <Ionicons name="camera" size={50} color={COLORS.inactive} />
+            <Text style={styles.placeholderText}>Tomar Foto</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+
+      {/* SELECTOR DE MODO DE UBICACIÓN */}
+      <View style={styles.modeContainer}>
+        <TouchableOpacity 
+          style={[styles.modeButton, locationMode === 'gps' && styles.modeButtonActive]}
+          onPress={() => setLocationMode('gps')}
+        >
+          <Ionicons name="location" size={18} color={locationMode === 'gps' ? '#FFF' : COLORS.secondary} />
+          <Text style={[styles.modeText, locationMode === 'gps' && { color: '#FFF' }]}>Usar GPS</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[styles.modeButton, locationMode === 'manual' && styles.modeButtonActive]}
+          onPress={() => {
+            setLocationMode('manual');
+            setLocation(null); // Limpiar GPS si elige manual
+          }}
+        >
+          <Ionicons name="pencil" size={18} color={locationMode === 'manual' ? '#FFF' : COLORS.secondary} />
+          <Text style={[styles.modeText, locationMode === 'manual' && { color: '#FFF' }]}>Escribir Dirección</Text>
+        </TouchableOpacity>
+      </View>
+
+      <TextInput
+        style={styles.input}
+        placeholder={locationMode === 'gps' ? "Confirma o edita la dirección..." : "Escribe la dirección exacta para el mapa..."}
+        value={address}
+        onChangeText={setAddress}
+        placeholderTextColor={COLORS.inactive}
+      />
+
+      <TextInput
+        style={[styles.input, styles.textArea]}
+        placeholder="Descripción detallada (qué observaste, personas, etc.)..."
+        value={description}
+        onChangeText={setDescription}
+        multiline={true}
+        numberOfLines={6}
+        placeholderTextColor={COLORS.inactive}
+      />
+
+      <View style={styles.statusContainer}>
+        <Text style={styles.statusLabel}>Estado del Lugar:</Text>
+        <View style={styles.statusButtons}>
+          {['No Seguro', 'En Proceso', 'Seguro'].map(s => (
+            <TouchableOpacity 
+              key={s}
+              style={[styles.statusButton, status === s && { backgroundColor: getStatusColor(s) }]}
+              onPress={() => setStatus(s)}
+            >
+              <Text style={[styles.statusButtonText, status === s && { color: '#FFFFFF' }]}>{s}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {/* Botón con indicador de carga */}
+      <TouchableOpacity 
+        style={[styles.submitButton, isSubmitting && { opacity: 0.7 }]} 
+        onPress={handleSubmitReport}
+        disabled={isSubmitting}
+      >
+        {isSubmitting ? (
+          <ActivityIndicator color="#FFF" />
+        ) : (
+          <Text style={styles.submitButtonText}>Enviar Reporte</Text>
+        )}
+      </TouchableOpacity>
+    </ScrollView>
+  );
+};
+
+const getStatusColor = (state) => {
+  switch (state) {
+    case 'No Seguro': return COLORS.error;
+    case 'En Proceso': return 'orange';
+    case 'Seguro': return 'green';
+    default: return 'gray';
+  }
+};
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: COLORS.background },
+  content: { padding: 20, gap: 15 },
+  title: { fontSize: 20, fontWeight: 'bold', color: COLORS.primary, textAlign: 'center', marginBottom: 10 },
+  imagePicker: { width: '100%', height: 200, backgroundColor: COLORS.card, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+  image: { width: '100%', height: '100%' },
+  placeholder: { justifyContent: 'center', alignItems: 'center' },
+  placeholderText: { color: COLORS.inactive, marginTop: 8 },
+  
+  // Estilos para los nuevos botones de modo
+  modeContainer: { flexDirection: 'row', backgroundColor: COLORS.card, borderRadius: 8, borderWidth: 1, borderColor: COLORS.border, overflow: 'hidden' },
+  modeButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, gap: 5 },
+  modeButtonActive: { backgroundColor: COLORS.primary },
+  modeText: { color: COLORS.secondary, fontWeight: '600', fontSize: 14 },
+  
+  input: { backgroundColor: COLORS.background, borderWidth: 1, borderColor: COLORS.border, borderRadius: 8, padding: 15, fontSize: 16, color: COLORS.text },
+  textArea: { height: 120, textAlignVertical: 'top' },
+  statusContainer: { marginTop: 10 },
+  statusLabel: { fontSize: 16, fontWeight: 'bold', color: COLORS.secondary, marginBottom: 8 },
+  statusButtons: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 },
+  statusButton: { flex: 1, backgroundColor: COLORS.card, borderWidth: 1, borderColor: COLORS.border, paddingVertical: 10, borderRadius: 8, alignItems: 'center' },
+  statusButtonText: { color: COLORS.secondary, fontWeight: '500' },
+  
+  submitButton: { marginTop: 20, backgroundColor: COLORS.primary, paddingVertical: 15, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  submitButtonText: { color: '#FFF', fontSize: 18, fontWeight: 'bold' }
+});
+
+export default ReportScreen;
+</file>
+
+</files>

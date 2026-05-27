@@ -5,6 +5,7 @@ import MyButton from '../components/MyButton';
 import { COLORS } from '../styles/colors';
 import * as Location from 'expo-location';
 
+// Pantalla principal de la aplicación. Desde aquí el usuario puede ver el mapa o iniciar un reporte rápido.
 const HomeScreen = ({ navigation }) => {
   const handleDirectReport = async () => {
     // 1. Solicitar permiso de ubicación
@@ -22,34 +23,46 @@ const HomeScreen = ({ navigation }) => {
     navigation.navigate('Report', { initialLocation: location.coords });
   };
 
-  return (
+return (
     <View style={styles.container}>
       <View style={styles.logoContainer}>
-        {/* Usamos un placeholder de logo, reemplaza con tu asset real */}
         <Image 
-          source={require('../../assets/icon.png')} // Reemplaza con un logo adecuado
+          source={require('../../assets/icon.png')}
           style={styles.logo} 
-          resizeMode="contain" 
+          resizeMode="contain"
+          // --- ACCESIBILIDAD PARA LA IMAGEN ---
+          accessible={true}
+          accessibilityRole="image"
+          accessibilityLabel="Logotipo de la aplicación Denuncia Ciudadana" 
         />
-        <Text style={styles.appName}>DENUNCIA CIUDADANA</Text>
+        <Text 
+          style={styles.appName}
+          // --- ACCESIBILIDAD PARA EL TÍTULO ---
+          accessibilityRole="header"
+        >
+          DENUNCIA CIUDADANA
+        </Text>
       </View>
       
-      <View style={styles.buttonContainer}>
+<View style={styles.buttonContainer}>
         <MyButton 
           title="Ver Mapa" 
           onPress={() => navigation.navigate('Map')} 
           style={styles.mainButton}
+          accessibilityHint="Abre un mapa mostrando todos los reportes de tu zona"
         />
         <MyButton 
           title="Reportar Ahora" 
           onPress={handleDirectReport} 
           style={styles.directButton}
+          accessibilityHint="Inicia una nueva denuncia usando tu ubicación actual de GPS"
         />
       </View>
     </View>
   );
-};
+}; // <-- 1. AQUÍ CERRAMOS EL COMPONENTE HomeScreen CORRECTAMENTE
 
+// 2. LOS ESTILOS QUEDAN TOTALMENTE AFUERA DE LA FUNCIÓN
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -65,7 +78,7 @@ const styles = StyleSheet.create({
   logo: {
     width: 150,
     height: 150,
-    tintColor: COLORS.primary, // Opcional, para usar el logo como silueta
+    tintColor: COLORS.primary,
   },
   appName: {
     fontSize: 24,
@@ -83,6 +96,6 @@ const styles = StyleSheet.create({
   directButton: {
     backgroundColor: COLORS.primary,
   },
-});
+}); 
 
 export default HomeScreen;
